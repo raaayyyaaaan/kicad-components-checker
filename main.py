@@ -128,7 +128,7 @@ async def get_results():
 
 @app.get("/api/board_file")
 async def get_board_file():
-    board_path = "/Users/aziz/Documents/pi_pcd/pi_pcd.kicad_pcb" 
+    board_path = os.getenv('BOARD_FILE_PATH')
     
     if not os.path.exists(board_path):
         raise HTTPException(status_code=404, detail="Board file not found")
