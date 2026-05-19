@@ -15,6 +15,9 @@ client = genai.Client()
 
 app = FastAPI()
 
+latest_analysis_results = []
+latest_board_filepath = ""
+
 class Component(BaseModel):
     ref_des: str
     value: str
@@ -45,12 +48,17 @@ async def analyze_components(
     components_data: str = Form(...), 
     board_file: UploadFile = File(...)
 ):
+    global latest_analysis_results
+    global latest_board_filepath
+
     raw_components = json.loads(components_data)
     components = [Component(**comp) for comp in raw_components]
 
     save_path = f"./uploaded_{board_file.filename}"
     with open(save_path, "wb") as buffer:
         shutil.copyfileobj(board_file.file, buffer)
+
+    latest_board_filepath = save_path
 
     enriched_components = []
     for comp in components:
@@ -128,10 +136,8 @@ async def get_results():
 
 @app.get("/api/board_file")
 async def get_board_file():
-    board_path = os.getenv('BOARD_FILE_PATH')
-    
-    if not os.path.exists(board_path):
-        raise HTTPException(status_code=404, detail="Board file not found")
+    if not latest_board_filepath or not os.path.exists(latest_board_filepath):
+        raise HTTPException(status_code=404, detail="Board file not found. Run analysis first.")
         
     return FileResponse(board_path, media_type="application/octet-stream")
 

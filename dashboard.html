@@ -101,7 +101,6 @@
             color: var(--text-muted);
         }
 
-        /* Main Canvas Area */
         #main-view {
             flex-grow: 1;
             position: relative;
@@ -144,12 +143,10 @@
     <div id="main-view">
         <div id="loading" class="loading-overlay">Analyzing Board Layout...</div>
         
-        <!-- KiCanvas Component pointing to your FastAPI board serving route -->
         <kicanvas-embed id="board-viewer" src="/api/board_file" controls="zoom pan"></kicanvas-embed>
     </div>
 
     <script>
-        // Store the flagged results globally for interaction
         let analysisData = [];
 
         async function fetchAnalysisResults() {
@@ -160,19 +157,12 @@
             resultsContainer.innerHTML = '';
 
             try {
-                // In your architecture, the KiCad plugin POSTs to /api/analyze.
-                // We assume you have a GET endpoint to retrieve the most recent results, 
-                // OR you can mock the POST here to test the UI.
-                
-                // For demonstration, we are fetching from a hypothetical GET endpoint
-                // that returns the last processed analysis.
                 const response = await fetch('/api/results'); 
                 
                 if (!response.ok) throw new Error('Failed to fetch analysis data.');
                 
                 analysisData = await response.json();
                 
-                // Filter to only show flagged components
                 const flaggedComponents = analysisData.filter(item => item.flagged);
 
                 if (flaggedComponents.length === 0) {
@@ -190,7 +180,6 @@
                             <p><strong>Issue:</strong> ${item.message}</p>
                         `;
                         
-                        // Add click listener to highlight on the board
                         card.addEventListener('click', () => highlightComponent(item.component.ref_des));
                         resultsContainer.appendChild(card);
                     });
