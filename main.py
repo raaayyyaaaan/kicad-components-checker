@@ -139,7 +139,7 @@ async def get_board_file():
     if not latest_board_filepath or not os.path.exists(latest_board_filepath):
         raise HTTPException(status_code=404, detail="Board file not found. Run analysis first.")
         
-    return FileResponse(board_path, media_type="application/octet-stream")
+    return FileResponse(latest_board_filepath, media_type="application/octet-stream")
 
 @app.get("/")
 async def root():
