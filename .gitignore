@@ -5,3 +5,7 @@ __pycache__/
 
 .cph/
 *.prob
+
+mockdb.py
+
+parts.db
