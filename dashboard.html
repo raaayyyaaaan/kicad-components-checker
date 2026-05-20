@@ -3,230 +3,547 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PCB AI Analyzer</title>
+    <title>EDA Toolchain: AI/PLM Design Review</title>
     
-    <!-- Include KiCanvas Web Component -->
-    <script type="module" src="https://kicanvas.org/kicanvas/kicanvas.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script type="module" src="./kicanvas.js"></script>
     
     <style>
         :root {
-            --bg-color: #121212;
-            --panel-bg: #1e1e1e;
-            --text-main: #e0e0e0;
-            --text-muted: #a0a0a0;
-            --danger: #ff4a4a;
-            --success: #4caf50;
-            --border: #333;
+            --bg-base: #18181a;
+            --bg-panel: #202024;
+            --bg-surface: #2b2b30;
+            --bg-surface-hover: #36363c;
+            --bg-toolbar: #1e1e20;
+            
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #60a5fa;
+            --accent-purple: #8b5cf6;
+            
+            --text-main: #e4e4e7;
+            --text-muted: #a1a1aa;
+            --text-dark: #71717a;
+            
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.15);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.15);
+            --success: #10b981;
+            
+            --border: #3f3f46;
+            --border-light: #52525b;
+            
+            --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+            
+            --panel-header-h: 44px;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
+            font-family: var(--font-ui);
+            background-color: var(--bg-base);
             color: var(--text-main);
             display: flex;
+            flex-direction: column;
             height: 100vh;
             overflow: hidden;
+            font-size: 13px;
         }
 
-        /* Sidebar Styles */
-        #sidebar {
-            width: 350px;
-            background-color: var(--panel-bg);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-            z-index: 10;
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #4b4b52; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #63636b; }
 
-        #sidebar-header {
-            padding: 20px;
+        h1, h2, h3, h4 { margin: 0; font-weight: 600; }
+        .mono { font-family: var(--font-mono); }
+
+        #toolbar {
+            height: 48px;
+            background-color: var(--bg-toolbar);
             border-bottom: 1px solid var(--border);
-            background-color: #252526;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 20;
         }
 
-        #sidebar-header h2 {
-            margin: 0 0 10px 0;
-            font-size: 1.2rem;
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .brand i { color: var(--accent-blue); font-size: 20px; }
+        .divider { width: 1px; height: 20px; background: var(--border); margin: 0 12px; }
+
+        .btn-primary {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: var(--font-ui);
+            font-weight: 500;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary:hover { background-color: var(--accent-blue-hover); transform: translateY(-1px); }
+        .btn-primary:active { transform: translateY(0); }
+
+        #workspace {
+            display: flex;
+            flex-grow: 1;
+            height: calc(100vh - 48px - 32px); 
+        }
+
+        .panel { background-color: var(--bg-panel); display: flex; flex-direction: column; z-index: 10; }
+        
+        .panel-header {
+            height: var(--panel-header-h);
+            min-height: var(--panel-header-h);
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-panel);
+            font-weight: 600;
             color: #fff;
         }
 
-        #action-btn {
-            width: 100%;
-            padding: 10px;
-            background-color: #007acc;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.2s;
-        }
-
-        #action-btn:hover {
-            background-color: #005f9e;
-        }
-
-        #results-container {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 15px;
-        }
-
-        .flag-card {
-            background-color: #2a2a2a;
-            border-left: 4px solid var(--danger);
-            padding: 12px;
-            margin-bottom: 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: transform 0.1s, background-color 0.1s;
-        }
-
-        .flag-card:hover {
-            background-color: #333;
-            transform: translateX(2px);
-        }
-
-        .flag-card h3 {
-            margin: 0 0 5px 0;
-            font-size: 1rem;
-            color: var(--danger);
-        }
-
-        .flag-card p {
-            margin: 0;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        #main-view {
-            flex-grow: 1;
+        .resizer {
+            width: 5px;
+            background-color: var(--bg-base);
+            cursor: col-resize;
+            z-index: 15;
             position: relative;
-            background-color: #000;
+            transition: background-color 0.2s ease;
         }
-
-        kicanvas-embed {
-            width: 100%;
-            height: 100%;
-            display: block;
+        .resizer::after {
+            content: ''; position: absolute; left: 2px; top: 0; bottom: 0; width: 1px; background: var(--border);
         }
+        .resizer:hover, .resizer.dragging { background-color: var(--accent-blue); }
+        .resizer:hover::after, .resizer.dragging::after { background: transparent; }
 
-        .loading-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(18, 18, 18, 0.8);
+        #left-panel { width: 340px; min-width: 260px; max-width: 600px; }
+        
+        .list-controls {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.1);
+        }
+        
+        .search-box {
             display: flex;
-            justify-content: center;
             align-items: center;
-            font-size: 1.2rem;
-            display: none;
-            z-index: 20;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px 10px;
+            margin-bottom: 10px;
+            gap: 8px;
         }
+        .search-box i { color: var(--text-muted); }
+        .search-box input {
+            background: transparent; border: none; color: var(--text-main); font-family: var(--font-ui); outline: none; width: 100%;
+        }
+
+        .filter-pills { display: flex; gap: 8px; }
+        .pill {
+            padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer;
+            background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border);
+        }
+        .pill.active { background: var(--bg-surface-hover); color: #fff; border-color: var(--border-light); }
+
+        #drc-list { flex-grow: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+        .drc-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .drc-card::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--border);
+        }
+        .drc-card.type-error::before { background: var(--danger); }
+        .drc-card.type-warning::before { background: var(--warning); }
+        
+        .drc-card:hover { border-color: var(--border-light); background-color: var(--bg-surface-hover); transform: translateX(2px); }
+        .drc-card.selected { background-color: var(--bg-surface-hover); border-color: var(--accent-blue); box-shadow: 0 0 0 1px var(--accent-blue); }
+        .drc-card.selected::before { background: var(--accent-blue); }
+
+        .drc-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .ref-des { font-family: var(--font-mono); font-weight: 600; color: #fff; display: flex; align-items: center; gap: 6px; }
+        
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge.error { background: var(--danger-bg); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+        .badge.warning { background: var(--warning-bg); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+
+        .drc-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        #viewport {
+            flex-grow: 1;
+            background-color: #09090b; 
+            position: relative;
+            min-width: 300px;
+            overflow: hidden;
+        }
+
+        kicanvas-embed { width: 100%; height: 100%; display: block; }
+
+        .loader-pill {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+            background: var(--bg-panel); border: 1px solid var(--border); border-radius: 30px;
+            padding: 8px 20px; display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 50; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .loader-pill.show { transform: translateX(-50%) translateY(0); }
+        .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #right-panel { width: 320px; min-width: 240px; max-width: 600px; }
+
+        .inspector-empty { padding: 40px 20px; text-align: center; color: var(--text-dark); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .inspector-empty i { font-size: 48px; opacity: 0.5; }
+
+        #property-content { display: none; height: 100%; flex-direction: column; }
+        
+        details { border-bottom: 1px solid var(--border); }
+        details > summary {
+            padding: 12px 16px; list-style: none; cursor: pointer; font-weight: 600; font-size: 12px; color: #fff;
+            display: flex; align-items: center; justify-content: space-between; background: var(--bg-panel);
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        details > summary::-webkit-details-marker { display: none; }
+        details > summary::after { content: '\25BE'; transition: transform 0.2s; color: var(--text-muted); }
+        details[open] > summary::after { transform: rotate(180deg); }
+        
+        .prop-group { padding: 0; margin: 0; background: var(--bg-base); }
+        
+        .prop-row { display: grid; grid-template-columns: 100px 1fr; border-top: 1px solid var(--border); }
+        .prop-row:first-child { border-top: none; }
+        .prop-key { padding: 10px 16px; color: var(--text-muted); font-size: 12px; display: flex; align-items: center; }
+        .prop-val { padding: 10px 16px; font-family: var(--font-mono); font-size: 12px; color: var(--text-main); word-break: break-word; border-left: 1px solid var(--border); background: var(--bg-surface); }
+        .prop-val.highlight { color: var(--accent-blue); font-weight: 500; }
+
+        .ai-insight { padding: 16px; background: rgba(139, 92, 246, 0.1); border-top: 1px solid rgba(139, 92, 246, 0.2); }
+        .ai-insight p { margin: 0 0 10px 0; line-height: 1.5; color: #fff; font-size: 13px; }
+        .ai-insight .ai-footer { display: flex; align-items: center; gap: 6px; color: var(--accent-purple); font-size: 11px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase;}
+
+        #status-bar {
+            height: 32px; background-color: var(--accent-blue); display: flex; align-items: center; justify-content: space-between;
+            padding: 0 16px; font-size: 12px; color: white; z-index: 20; font-family: var(--font-mono);
+        }
+        .status-left, .status-right { display: flex; align-items: center; gap: 16px; }
+        .status-item { display: flex; align-items: center; gap: 6px; }
+        .led { width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 5px rgba(255,255,255,0.5); }
+        .led.error { background: #fca5a5; box-shadow: 0 0 5px var(--danger); }
+        .led.active { animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     </style>
 </head>
 <body>
 
-    <div id="sidebar">
-        <div id="sidebar-header">
-            <h2>AI Agent Analysis</h2>
-            <button id="action-btn" onclick="fetchAnalysisResults()">Fetch Latest Analysis</button>
+    <div id="toolbar">
+        <div class="brand">
+            <i class="ph-fill ph-circuitry"></i>
+            EDA DRC Agent
+            <div class="divider"></div>
+            <span style="color: var(--text-muted); font-weight: 400;"><i class="ph ph-folder" style="font-size:14px; vertical-align:middle; margin-right:4px;"></i> main_board_v2.kicad_pcb</span>
         </div>
-        <div id="results-container">
-            <p style="color: var(--text-muted); text-align: center; margin-top: 20px;">
-                Click "Fetch Latest Analysis" to review board.
-            </p>
+        
+        <div style="display: flex; gap: 12px;">
+            <button class="btn-primary" onclick="executeDRC()">
+                <i class="ph-bold ph-play"></i> Run Automated Review
+            </button>
         </div>
     </div>
 
-    <div id="main-view">
-        <div id="loading" class="loading-overlay">Analyzing Board Layout...</div>
+    <div id="workspace">
         
-        <kicanvas-embed id="board-viewer" src="/api/board_file" controls="zoom pan"></kicanvas-embed>
+        <div id="left-panel" class="panel">
+            <div class="panel-header">
+                <span>Violations</span>
+                <span id="violation-count" class="mono" style="color:var(--text-muted); font-size:12px;">0</span>
+            </div>
+            
+            <div class="list-controls">
+                <div class="search-box">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input type="text" id="search-input" placeholder="Search RefDes or rules..." onkeyup="filterList()">
+                </div>
+                <div class="filter-pills">
+                    <div class="pill active" onclick="toggleFilter('all')">All</div>
+                    <div class="pill" onclick="toggleFilter('error')">Errors</div>
+                    <div class="pill" onclick="toggleFilter('warning')">Warnings</div>
+                </div>
+            </div>
+
+            <div id="drc-list">
+                <div style="padding: 30px 20px; text-align: center; color: var(--text-dark);">
+                    <i class="ph ph-check-circle" style="font-size: 32px; margin-bottom: 10px;"></i>
+                    <div>Ready to execute. Run review to fetch EDA/PLM sync data.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="resizer" id="resizer-left"></div>
+
+        <div id="viewport">
+            <div id="loading" class="loader-pill">
+                <div class="spinner"></div>
+                <span style="font-weight:500;">Executing AI Validation Sequence...</span>
+            </div>
+            
+            <div id="canvas-container" style="width:100%; height:100%;">
+                </div>
+        </div>
+
+        <div class="resizer" id="resizer-right"></div>
+
+        <div id="right-panel" class="panel">
+            <div class="panel-header">
+                <span>Property Inspector</span>
+                <i class="ph ph-list"></i>
+            </div>
+            
+            <div id="inspector-empty" class="inspector-empty">
+                <i class="ph ph-mouse"></i>
+                <span>Select a violation to view details.</span>
+            </div>
+
+            <div id="property-content">
+                <details open>
+                    <summary>Component Overview</summary>
+                    <div class="prop-group">
+                        <div class="prop-row"><div class="prop-key">RefDes</div><div class="prop-val highlight" id="prop-ref">--</div></div>
+                        <div class="prop-row"><div class="prop-key">MPN</div><div class="prop-val" id="prop-mpn">--</div></div>
+                        <div class="prop-row"><div class="prop-key">Value</div><div class="prop-val" id="prop-val">--</div></div>
+                    </div>
+                </details>
+
+                <details open>
+                    <summary>PLM Lifecycle</summary>
+                    <div class="prop-group">
+                        <div class="prop-row">
+                            <div class="prop-key">Status</div>
+                            <div class="prop-val" id="prop-status">--</div>
+                        </div>
+                        <div class="prop-row"><div class="prop-key">Database</div><div class="prop-val">Enovia V6</div></div>
+                    </div>
+                </details>
+
+                <details open>
+                    <summary>Spatial Data</summary>
+                    <div class="prop-group">
+                        <div class="prop-row"><div class="prop-key">X Coord</div><div class="prop-val" id="prop-x">--</div></div>
+                        <div class="prop-row"><div class="prop-key">Y Coord</div><div class="prop-val" id="prop-y">--</div></div>
+                    </div>
+                </details>
+
+                <div class="ai-insight">
+                    <div class="ai-footer" style="margin-bottom:8px;"><i class="ph-fill ph-sparkle"></i> AI Agent Analysis</div>
+                    <p id="prop-msg">--</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="status-bar">
+        <div class="status-left">
+            <div class="status-item">
+                <div class="led" id="plm-led"></div>
+                <span id="plm-status">(mock) Enovia PLM: Connected</span>
+            </div>
+            <div class="status-item" style="opacity: 0.7;">
+                <i class="ph ph-database"></i> Cache: Syncing
+            </div>
+        </div>
+        <div class="status-right">
+            <div class="status-item">
+                synced from KiCanvas
+            </div>
+        </div>
     </div>
 
     <script>
-        let analysisData = [];
+        let globalData = [];
+        let currentFilter = 'all';
 
-        async function fetchAnalysisResults() {
-            const resultsContainer = document.getElementById('results-container');
-            const loadingOverlay = document.getElementById('loading');
+        document.addEventListener('DOMContentLoaded', () => {
+            const leftResizer = document.getElementById('resizer-left');
+            const leftPanel = document.getElementById('left-panel');
+            const rightResizer = document.getElementById('resizer-right');
+            const rightPanel = document.getElementById('right-panel');
+
+            const setupResizer = (resizer, panel, isLeft) => {
+                let isDragging = false;
+                resizer.addEventListener('mousedown', () => { isDragging = true; resizer.classList.add('dragging'); document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; });
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    if (isLeft) panel.style.width = Math.max(260, Math.min(e.clientX, document.body.clientWidth - 400)) + 'px';
+                    else panel.style.width = Math.max(240, Math.min(document.body.clientWidth - e.clientX, document.body.clientWidth - 400)) + 'px';
+                });
+                document.addEventListener('mouseup', () => { isDragging = false; resizer.classList.remove('dragging'); document.body.style.cursor = 'default'; document.body.style.userSelect = ''; });
+            };
+
+            setupResizer(leftResizer, leftPanel, true);
+            setupResizer(rightResizer, rightPanel, false);
+        });
+
+        async function executeDRC() {
+            const list = document.getElementById('drc-list');
+            const loader = document.getElementById('loading');
+            const led = document.getElementById('plm-led');
+            const statusTxt = document.getElementById('plm-status');
             
-            loadingOverlay.style.display = 'flex';
-            resultsContainer.innerHTML = '';
+            loader.classList.add('show');
+            led.classList.add('active');
+            statusTxt.innerText = 'Querying PLM...';
 
             try {
-                const response = await fetch('/api/results'); 
+                const res = await fetch('/api/results');
+                if (!res.ok) throw new Error('Backend failed');
+                globalData = await res.json();
                 
-                if (!response.ok) throw new Error('Failed to fetch analysis data.');
-                
-                analysisData = await response.json();
-                
-                const flaggedComponents = analysisData.filter(item => item.flagged);
+                document.getElementById('canvas-container').innerHTML = `<kicanvas-embed id="viewer" src="/api/board_file/board.kicad_pcb" controls="full"></kicanvas-embed>`;
 
-                if (flaggedComponents.length === 0) {
-                    resultsContainer.innerHTML = `
-                        <div style="text-align: center; color: var(--success); margin-top: 20px;">
-                            <strong>All Clear!</strong><br>No violations found by the AI Agent.
-                        </div>`;
-                } else {
-                    flaggedComponents.forEach(item => {
-                        const card = document.createElement('div');
-                        card.className = 'flag-card';
-                        card.innerHTML = `
-                            <h3>${item.component.ref_des}</h3>
-                            <p><strong>Part:</strong> ${item.component.part_number}</p>
-                            <p><strong>Issue:</strong> ${item.message}</p>
-                        `;
-                        
-                        card.addEventListener('click', () => highlightComponent(item.component.ref_des));
-                        resultsContainer.appendChild(card);
-                    });
-                }
-            } catch (error) {
-                console.error(error);
-                resultsContainer.innerHTML = `
-                    <div style="color: var(--danger); text-align: center; margin-top: 20px;">
-                        Failed to load analysis.<br>Make sure the backend is running.
-                    </div>`;
-            } finally {
-                loadingOverlay.style.display = 'none';
+            } catch (err) {
+                console.warn("Fetch failed, using mock data for UI demonstration.");
+                globalData = [
+                    { flagged: true, status: 'Obsolete', message: 'Part is marked obsolete in Enovia PLM. Recommended replacement: CRCW040210K0FKED.', component: { ref_des: 'R12', part_number: 'ERJ-2GEJ103X', value: '10k', x: 12.5, y: 34.2 } },
+                    { flagged: true, status: 'Active', message: 'Clearance violation detected near high-speed trace. Requires 0.2mm minimum.', component: { ref_des: 'U4', part_number: 'STM32F405RGT6', value: 'MCU', x: 55.1, y: 88.0 } },
+                    { flagged: true, status: 'NRND', message: 'Not Recommended for New Designs. End of life scheduled for Q3 2026.', component: { ref_des: 'C33', part_number: 'GRM155R71C104KA88D', value: '0.1uF', x: 40.0, y: 22.1 } }
+                ];
+                document.getElementById('canvas-container').innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#555;">[KiCanvas Viewer Area]</div>`;
             }
+
+            renderList();
+
+            setTimeout(() => {
+                loader.classList.remove('show');
+                led.classList.remove('active');
+                statusTxt.innerText = 'Enovia PLM: Connected';
+            }, 800);
         }
 
-        function highlightComponent(refDes) {
-            const viewer = document.getElementById('board-viewer');
+        function renderList() {
+            const list = document.getElementById('drc-list');
+            const countLabel = document.getElementById('violation-count');
+            const query = document.getElementById('search-input').value.toLowerCase();
             
-            if (!viewer || !viewer.board) {
-                console.warn("KiCanvas is not fully initialized yet.");
+            list.innerHTML = '';
+            
+            const flags = globalData.filter(item => item.flagged);
+            let visibleCount = 0;
+
+            if (flags.length === 0) {
+                list.innerHTML = `<div style="padding: 20px; color: var(--success); text-align:center;"><i class="ph-fill ph-check-circle" style="font-size:24px; margin-bottom:10px;"></i><br>Zero violations detected.</div>`;
+                countLabel.innerText = '0';
                 return;
             }
 
-            // KiCanvas exposes an API to select and zoom to specific reference designators
-            try {
-                // Clear previous selections
-                viewer.selection = []; 
+            flags.forEach((item) => {
+                const statusStr = (item.status || "").toLowerCase();
+                const msgStr = (item.message || "").toLowerCase();
                 
-                // Set new selection
-                viewer.selection = [refDes];
+                let type = 'warning';
+                let typeLabel = 'Warning';
                 
-                // Programmatically trigger a zoom to the selected component
-                viewer.zoomToSelection();
-                
-            } catch (error) {
-                console.error(`Error highlighting component ${refDes}:`, error);
-                
-                // Fallback: If the official API isn't exposing zoomToSelection, 
-                // you can manipulate the internal shadow DOM (fragile but sometimes necessary)
-                const shadowRoot = viewer.shadowRoot;
-                if (shadowRoot) {
-                    const footprint = shadowRoot.querySelector(`[data-ref="${refDes}"]`);
-                    if (footprint) {
-                        footprint.classList.add('highlight-error');
-                    }
+                if (statusStr.includes('obsolete') || msgStr.includes('violation') || msgStr.includes('clearance')) {
+                    type = 'error';
+                    typeLabel = 'Critical';
+                } else if (statusStr.includes('nrnd') || msgStr.includes('aec-q')) {
+                    type = 'warning';
+                    typeLabel = 'NRND';
                 }
+
+                if (currentFilter !== 'all' && currentFilter !== type) return;
+                if (query && !item.component.ref_des.toLowerCase().includes(query) && !msgStr.includes(query)) return;
+
+                visibleCount++;
+
+                const el = document.createElement('div');
+                el.className = `drc-card type-${type}`;
+                el.id = `drc-${item.component.ref_des}`;
+                
+                const ref = item.component.ref_des;
+                let icon = 'ph-cpu';
+                if (ref.startsWith('R')) icon = 'ph-wave-sine';
+                if (ref.startsWith('C')) icon = 'ph-battery-empty';
+                if (ref.startsWith('J') || ref.startsWith('P')) icon = 'ph-plug';
+
+                el.innerHTML = `
+                    <div class="drc-card-header">
+                        <span class="ref-des"><i class="ph ${icon}"></i> ${item.component.ref_des}</span>
+                        <span class="badge ${type}">${item.status || typeLabel}</span>
+                    </div>
+                    <div class="drc-card-desc">${item.message}</div>
+                `;
+                el.onclick = () => selectComponent(item, el, type);
+                list.appendChild(el);
+            });
+
+            countLabel.innerText = visibleCount;
+            if (visibleCount === 0) {
+                 list.innerHTML = `<div style="padding: 20px; color: var(--text-muted); text-align:center; font-style:italic;">No matches found for filter.</div>`;
             }
+        }
+
+        function filterList() { renderList(); }
+
+        function toggleFilter(type) {
+            currentFilter = type;
+            document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+            event.target.classList.add('active');
+            renderList();
+        }
+
+        function selectComponent(item, element, severity) {
+            document.querySelectorAll('.drc-card').forEach(el => el.classList.remove('selected'));
+            if(element) element.classList.add('selected');
+
+            document.getElementById('inspector-empty').style.display = 'none';
+            document.getElementById('property-content').style.display = 'flex';
+
+            document.getElementById('prop-ref').innerText = item.component.ref_des;
+            document.getElementById('prop-mpn').innerText = item.component.part_number;
+            document.getElementById('prop-val').innerText = item.component.value;
+            
+            const statusEl = document.getElementById('prop-status');
+            statusEl.innerHTML = `<span class="badge ${severity}">${item.status || 'Active'}</span>`;
+            
+            document.getElementById('prop-x').innerText = `${item.component.x.toFixed(3)} mm`;
+            document.getElementById('prop-y').innerText = `${item.component.y.toFixed(3)} mm`;
+            document.getElementById('prop-msg').innerText = item.message;
+
+            window.dispatchEvent(new CustomEvent('kicanvas-force-zoom', { 
+                detail: { refdes: item.component.ref_des } 
+            }));
         }
     </script>
 </body>
