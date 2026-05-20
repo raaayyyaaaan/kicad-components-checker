@@ -9,3 +9,6 @@ __pycache__/
 mockdb.py
 
 parts.db
+*.kicad_pcb
+mock_db.py
+parts.db
